@@ -136,7 +136,7 @@ var ModelWrapper = function (state) {
                     nameHandlerMapping[name] = handlerSet;
                 }
 
-                if (!$.inArray(fn, handlerSet)) {
+                if ($.inArray(fn, handlerSet) == -1) {
                      handlerSet.push(fn);
                 }
 
@@ -158,13 +158,18 @@ var ModelWrapper = function (state) {
                 }
 
                 $.each(pathHandlerMapping, function(handlerPath, nameHandlerMapping) {
-                    if (handlerPath.indexOf(path) === 0) {
-                        $.each(nameHandlerMapping, function(name, handlerSet) {
-                            $.each(handlerSet, function(i, fn) {
-                                fn(eventParams);
-                            })
-                        })
+                    if (handlerPath.indexOf(path) !== 0) {
+                        return true;
                     }
+                    var handlerSet = nameHandlerMapping[name];
+                    if (handlerSet == null) {
+                        return true;
+                    }
+
+                    var callContext = self.find(handlerPath);
+                    $.each(handlerSet, function(i, fn) {
+                        $.proxy(fn, callContext)(eventParams);
+                    })
                 });
 
                 return this;

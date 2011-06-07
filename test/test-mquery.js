@@ -8,6 +8,15 @@
 
 $(function() {
 
+var NUMBER_SUFFIXES = ["st", "nd", "d"];
+
+function caseNumberMessage(i) {
+    var suffix = NUMBER_SUFFIXES[i];
+
+    ok(true, "Running " + (i + 1) + "-" + (suffix !== undefined ? suffix : "th") + " case");
+
+}
+
 module("Utilities");
 
 test("escape path element", function() {
@@ -137,8 +146,8 @@ test("initialization", function() {
 });
 
 
-test("find by path", function() {
-    var someObj = {
+function createTestObject() {
+    return {
         stringVal: "testVal1",
         numberVal: 1,
         objectVal: {
@@ -154,43 +163,47 @@ test("find by path", function() {
             }
         }]
     };
+}
 
-    var wrapper = $m(someObj);
-    var validSearchCases = [{
-            path: ["stringVal"],
-            type: "string"
-        }, {
-            path: ["numberVal"],
-            type: "number"
-        }, {
-            path: ["objectVal"],
-            type: "object"
-        }, {
-            path: ["arrayVal"],
-            type: "object",
-            isArray: true
-        }, {
-            path: ["objectVal", "stringVal2"],
-            type: "string"
-        }, {
-            path: ["objectVal", "objectVal2", "someVal2"],
-            type: "string"
-        }, {
-            path: ["arrayVal", 0],
-            type: "string"
-        }, {
-            path: ["arrayVal", 1],
-            type: "number"
-        }, {
-            path: ["arrayVal", 2, "stringVal3"],
-            type: "string"
-        }
-    ];
+test("valid search", function() {
+    var someObj = createTestObject(),
+        wrapper = $m(someObj),
+        validSearchCases = [{
+                path: ["stringVal"],
+                type: "string"
+            }, {
+                path: ["numberVal"],
+                type: "number"
+            }, {
+                path: ["objectVal"],
+                type: "object"
+            }, {
+                path: ["arrayVal"],
+                type: "object",
+                isArray: true
+            }, {
+                path: ["objectVal", "stringVal2"],
+                type: "string"
+            }, {
+                path: ["objectVal", "objectVal2", "someVal2"],
+                type: "string"
+            }, {
+                path: ["arrayVal", 0],
+                type: "string"
+            }, {
+                path: ["arrayVal", 1],
+                type: "number"
+            }, {
+                path: ["arrayVal", 2, "stringVal3"],
+                type: "string"
+            }
+        ];
 
     $.each(validSearchCases, function(i, validSearch) {
+        caseNumberMessage(i);
 
-        var expectingPath = validSearch.path.join(".");
-        var expectingVal = someObj;
+        var expectingPath = validSearch.path.join("."),
+            expectingVal = someObj;
 
         $.each(validSearch.path, function(i, fieldName) {
             expectingVal = expectingVal[fieldName];
@@ -198,19 +211,24 @@ test("find by path", function() {
 
         var foundWrapper = wrapper.find(expectingPath);
 
-        equals(expectingVal, foundWrapper.val());
-        equals(validSearch.type, typeof foundWrapper.val());
+        equals(expectingVal, foundWrapper.val(), "Value not changed");
+        equals(validSearch.type, typeof foundWrapper.val(), "Value type not changed");
 
         if (validSearch.isArray === true) {
             ok($.isArray(foundWrapper.val()));
         }
 
-        equals(expectingPath, foundWrapper.path());
-        ok(wrapper === foundWrapper.root());
+        equals(expectingPath, foundWrapper.path(), "Path valid");
+        ok(wrapper === foundWrapper.root(), "Root is root wrapper");
 
     });
+});
 
-    var virtualWrapperSearchCases = [
+test("invalid search", function() {
+
+    var someObj = createTestObject(),
+        wrapper = $m(someObj),
+        virtualWrapperSearchCases = [
         /* "", */  // TODO: Handle empty path case
         "stringVal.length",
         "numberVal.someFakeField",
@@ -222,23 +240,69 @@ test("find by path", function() {
 
 
     $.each(virtualWrapperSearchCases, function(i, path) {
+        caseNumberMessage(i);
+
         var foundWrapper = wrapper.find(this);
 
-        ok(wrapper == foundWrapper.root());
-        ok(null == foundWrapper.val());
-        strictEqual(path, foundWrapper.path());
+        ok(wrapper == foundWrapper.root(), "Root is root wrapper");
+        ok(undefined === foundWrapper.val(), "Value is undefined");
+        strictEqual(path, foundWrapper.path(), "Path valid");
     });
+});
 
-//    equals(someObj.stringVal, o.find("stringVal").val());
-//    equals(someObj.numberVal, o.find("numberVal").val());
-//    equals(someObj.objectVal, o.find("objectVal").val());
-//    equals(someObj.arrayVal, o.find("arrayVal").val());
-//
-//    equals(someObj.objectVal.stringVal2, o.find("objectVal.stringVal2").val());
-//    equals(someObj.objectVal.objectVal2.someVal1, o.find("objectVal.objectVal2.someVal").val());
-//    equals(someObj.arrayVal[0], o.find("arrayVal.0").val());
-//    equals(someObj.arrayVal[2].stringVal3, o.find("arrayVal.2.stringVal3").val());
-//    equals(someObj.arrayVal[2].objectVal3.someVal3, o.find("arrayVal.2.objectVal3.someVal3").val());
-})
+test("event binding/triggering", function() {
+
+    var cases = [{
+        bindPath: "testVal1",
+        bindEvent: "someEvent",
+        triggerPath: "testVal1",
+        triggerEvent: "someEvent",
+        shouldBeHandled: true
+    }, {
+        bindPath: "testVal1",
+        bindEvent: "someEvent",
+        triggerPath: "",
+        triggerEvent: "someEvent",
+        shouldBeHandled: true
+    }, {
+        bindPath: "testVal1",
+        bindEvent: "someEvent",
+        triggerPath: "testVal1",
+        triggerEvent: "some",
+        shouldBeHandled: false
+    },  {
+        bindPath: "someVirtualField",
+        bindEvent: "someEvent",
+        triggerPath: "",
+        triggerEvent: "someEvent",
+        shouldBeHandled: true
+    },  {
+        bindPath: "testVal.someVirtualField",
+        bindEvent: "someEvent",
+        triggerPath: "",
+        triggerEvent: "someEvent",
+        shouldBeHandled: true
+    }];
+
+    $.each(cases, function(i, c) {
+        caseNumberMessage(i);
+
+        var wrapper = $m(createTestObject()),
+            eventHandledTimes = 0,
+            eventParams = {test: "Param Value", secondField: "Param Value 2"};
+
+        wrapper.bind(c.bindPath, c.bindEvent, function(e) {
+            eventHandledTimes++;
+            equals(c.bindPath, this.path(), "Path valid");
+            ok(wrapper == this.root(), "Root is root wrapper");
+            equals(eventParams, e, "Event params not changed")
+        });
+
+        wrapper.trigger(c.triggerPath, c.triggerEvent, eventParams);
+        equals(c.shouldBeHandled ? 1 : 0, eventHandledTimes, "Handler executed valid times");
+    });
+});
+
+
 
 });
