@@ -184,7 +184,7 @@ var ModelWrapper = function (state) {
                     changes = [];
 
                 function merge(target, source, path) {
-                    var src, clone, copy, copyIsArray, replacements;
+                    var src, clone, copy, copyIsArray, replacements, clonedPath;
 
                     for (var name in source) {
                         src = target[ name ];
@@ -195,31 +195,29 @@ var ModelWrapper = function (state) {
                             continue;
                         }
 
+                        clonedPath = path.slice(0, path.length);
+                        clonedPath.push(name);
+
                         // Recurse if we're merging plain objects or arrays
                         if (copy && ( $.isPlainObject(copy) || (copyIsArray = $.isArray(copy)) ) ) {
-
                             if ( copyIsArray ) {
                                 copyIsArray = false;
-                                clone = !$.inArray(name, replacements)
-                                        ? (src && $.isArray(src) ? src : [])
-                                        : [];
+                                clone = src && $.isArray(src) ? src : [];
                             } else {
-                                clone = !$.inArray(name, replacements)
-                                        ? (src && $.isPlainObject(src) ? src : {})
-                                        : [];
+                                clone = src && $.isPlainObject(src) ? src : {};
                             }
 
                             // Never move original objects, clone them
+
                             target[ name ] = merge(
                                     clone,
                                     copy,
-                                    path.slice(0, path.length).push(name));
+                                    clonedPath);
 
                         // Don't bring in undefined values
                         } else if ( copy !== undefined ) {
-
                             changes.push({
-                                path: path.slice(0, path.length).push(name),
+                                path: clonedPath,
                                 value: copy
                             });
                             target[ name ] = copy;
@@ -231,7 +229,7 @@ var ModelWrapper = function (state) {
 
                 merge(this.val(), source, []);
                 $.each(changes, function(i, e) {
-                    var path = $.path(e.path);
+                    var path = $m.path(e.path);
                     self.trigger(path, "change", {
                         path: path,
                         value: e.value

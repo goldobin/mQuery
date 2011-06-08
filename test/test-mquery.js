@@ -136,38 +136,35 @@ test("split path", function() {
 module("Wrapper");
 
 test("initialization", function() {
-    var someObj = {someVal1: "someVal1"};
-    var wrapped = $m(someObj);
+    var someObj = {
+            someVal1: "someVal1"
+        },
+        wrapped = $m(someObj);
 
     ok(wrapped.isRoot(), "must be root");
-    equal(someObj, wrapped.val());
+    equal(wrapped.val(), someObj);
     ok(wrapped === wrapped.root());
     ok(null === wrapped.parent());
 });
 
-
-function createTestObject() {
-    return {
-        stringVal: "testVal1",
-        numberVal: 1,
-        objectVal: {
-            stringVal2: "test1",
-            objectVal2: {
-                someVal2: "test2"
-            }
-        },
-        arrayVal: ["test3", 2, {
-            stringVal3: "test4",
-            objectVal3: {
-                someVal3: "test5"
-            }
-        }]
-    };
-}
-
 test("valid search", function() {
-    var someObj = createTestObject(),
-        wrapper = $m(someObj),
+    var o = {
+            stringVal: "testVal1",
+            numberVal: 1,
+            objectVal: {
+                stringVal2: "test1",
+                objectVal2: {
+                    someVal2: "test2"
+                }
+            },
+            arrayVal: ["test3", 2, {
+                stringVal3: "test4",
+                objectVal3: {
+                    someVal3: "test5"
+                }
+            }]
+        },
+        wrapper = $m(o),
         validSearchCases = [{
                 path: ["stringVal"],
                 type: "string"
@@ -203,7 +200,7 @@ test("valid search", function() {
         caseNumberMessage(i);
 
         var expectingPath = validSearch.path.join("."),
-            expectingVal = someObj;
+            expectingVal = o;
 
         $.each(validSearch.path, function(i, fieldName) {
             expectingVal = expectingVal[fieldName];
@@ -212,14 +209,14 @@ test("valid search", function() {
         var foundWrapper = wrapper.find(expectingPath);
 
         ok(!foundWrapper.isVirtual(), "Wrapper is not virtual");
-        equals(expectingVal, foundWrapper.val(), "Value not changed");
-        equals(validSearch.type, typeof foundWrapper.val(), "Value type not changed");
+        equal(foundWrapper.val(), expectingVal, "Value not changed");
+        equal(typeof foundWrapper.val(), validSearch.type, "Value type not changed");
 
         if (validSearch.isArray === true) {
             ok($.isArray(foundWrapper.val()));
         }
 
-        equals(expectingPath, foundWrapper.path(), "Path valid");
+        equals(foundWrapper.path(), expectingPath, "Path valid");
         ok(wrapper === foundWrapper.root(), "Root is root wrapper");
 
     });
@@ -227,8 +224,22 @@ test("valid search", function() {
 
 test("invalid search", function() {
 
-    var someObj = createTestObject(),
-        wrapper = $m(someObj),
+    var wrapper = $m({
+            stringVal: "testVal1",
+            numberVal: 1,
+            objectVal: {
+                stringVal2: "test1",
+                objectVal2: {
+                    someVal2: "test2"
+                }
+            },
+            arrayVal: ["test3", 2, {
+                stringVal3: "test4",
+                objectVal3: {
+                    someVal3: "test5"
+                }
+            }]
+        }),
         virtualWrapperSearchCases = [
         /* "", */  // TODO: Handle empty path case
         "stringVal.length",
@@ -248,10 +259,78 @@ test("invalid search", function() {
         ok(foundWrapper.isVirtual(), "Wrapper is virtual");
         ok(wrapper == foundWrapper.root(), "Root is root wrapper");
         ok(undefined === foundWrapper.val(), "Value is undefined");
-        strictEqual(path, foundWrapper.path(), "Path valid");
+        strictEqual(foundWrapper.path(), path, "Path valid");
 
 
     });
+});
+
+module("Merge and Replace");
+
+test("override existing values", function() {
+    var wrapper = $m({
+        stringVal: "testVal1",
+        numberVal: 1,
+        objectVal: {
+            stringVal2: "test1",
+            objectVal2: {
+                someVal2: "test2"
+            }
+        },
+        arrayVal: ["test3", 2, {
+            stringVal3: "test4",
+            objectVal3: {
+                someVal3: "test5"
+            }
+        }]
+    });
+
+    wrapper.merge({
+        stringVal: "otherTestVal1",
+        arrayVal: [1],
+        objectVal: {
+            stringVal2: "otherTestVal2"
+        }
+    });
+
+    equal(wrapper.val().stringVal, "otherTestVal1");
+    equal(wrapper.val().arrayVal[0], 1);
+    equal(wrapper.val().objectVal.stringVal2, "otherTestVal2");
+});
+
+test("extending arrays and objects", function() {
+    var wrapper = $m({
+        stringVal: "testVal1",
+        numberVal: 1,
+        objectVal: {
+            stringVal2: "test1",
+            objectVal2: {
+                someVal2: "test2"
+            }
+        },
+        arrayVal: ["test3", 2, {
+            stringVal3: "test4",
+            objectVal3: {
+                someVal3: "test5"
+            }
+        }]
+    }), innerObject = {
+        field: "someValue"
+    };
+
+    wrapper.merge({
+        stringVal2: "stringVal2Value",
+        arrayVal: [1, 2, 3, innerObject, 5],
+        objectVal: {
+            stringVal3: "stringVal3Value"
+        }
+    });
+
+    equal(wrapper.val().stringVal2, "stringVal2Value");
+    equal(wrapper.val().arrayVal.length, 5);
+    deepEqual(wrapper.val().arrayVal[3], innerObject);
+    equal(wrapper.val().arrayVal[4], 5);
+    equal(wrapper.val().objectVal.stringVal3, "stringVal3Value");
 });
 
 module("Events");
@@ -299,21 +378,37 @@ test("binding/triggering", function() {
     $.each(cases, function(i, c) {
         caseNumberMessage(i);
 
-        var wrapper = $m(createTestObject()),
+        var wrapper = $m({
+                stringVal: "testVal1",
+                numberVal: 1,
+                objectVal: {
+                    stringVal2: "test1",
+                    objectVal2: {
+                        someVal2: "test2"
+                    }
+                },
+                arrayVal: ["test3", 2, {
+                    stringVal3: "test4",
+                    objectVal3: {
+                        someVal3: "test5"
+                    }
+                }]
+            }),
             eventHandledTimes = 0,
             eventParams = {test: "Param Value", secondField: "Param Value 2"};
 
         wrapper.bind(c.bindPath, c.bindEvent, function(e) {
             eventHandledTimes++;
-            equals(c.bindPath, this.path(), "Path valid");
+            equal(this.path(), c.bindPath, "Path valid");
             ok(wrapper == this.root(), "Root is root wrapper");
-            equals(eventParams, e, "Event params not changed")
+            equal(e, eventParams, "Event params not changed")
         });
 
         wrapper.trigger(c.triggerPath, c.triggerEvent, eventParams);
-        equals(c.shouldBeHandled ? 1 : 0, eventHandledTimes, "Handler executed valid times");
+        equals(eventHandledTimes, c.shouldBeHandled ? 1 : 0, "Handler executed valid times");
     });
 });
+
 
 
 
