@@ -167,6 +167,11 @@ var ModelWrapper = function (state) {
                     }
 
                     var callContext = self.find(handlerPath);
+
+                    if (callContext.isVirtual()) {
+                        return true;
+                    }
+
                     $.each(handlerSet, function(i, fn) {
                         $.proxy(fn, callContext)(eventParams);
                     })
@@ -265,6 +270,12 @@ var ModelWrapper = function (state) {
         },
         isRoot: function() {
             return selfState.path.length == 0;
+        },
+        isVirtual: function() {
+            return selfState.value === undefined && (
+                selfState.relation !== undefined
+                        ? selfState.relation.value[selfState.relation.nameOrIndex] === undefined
+                        : true);
         },
         path: function() {
             return $m.path(selfState.path);

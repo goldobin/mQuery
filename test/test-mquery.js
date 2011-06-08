@@ -211,6 +211,7 @@ test("valid search", function() {
 
         var foundWrapper = wrapper.find(expectingPath);
 
+        ok(!foundWrapper.isVirtual(), "Wrapper is not virtual");
         equals(expectingVal, foundWrapper.val(), "Value not changed");
         equals(validSearch.type, typeof foundWrapper.val(), "Value type not changed");
 
@@ -244,44 +245,55 @@ test("invalid search", function() {
 
         var foundWrapper = wrapper.find(this);
 
+        ok(foundWrapper.isVirtual(), "Wrapper is virtual");
         ok(wrapper == foundWrapper.root(), "Root is root wrapper");
         ok(undefined === foundWrapper.val(), "Value is undefined");
         strictEqual(path, foundWrapper.path(), "Path valid");
+
+
     });
 });
 
-test("event binding/triggering", function() {
+module("Events");
+
+test("binding/triggering", function() {
 
     var cases = [{
-        bindPath: "testVal1",
+        bindPath: "stringVal",
         bindEvent: "someEvent",
-        triggerPath: "testVal1",
+        triggerPath: "stringVal",
         triggerEvent: "someEvent",
         shouldBeHandled: true
     }, {
-        bindPath: "testVal1",
+        bindPath: "stringVal",
         bindEvent: "someEvent",
         triggerPath: "",
         triggerEvent: "someEvent",
         shouldBeHandled: true
     }, {
-        bindPath: "testVal1",
+        bindPath: "stringVal",
         bindEvent: "someEvent",
-        triggerPath: "testVal1",
+        triggerPath: "stringVal",
         triggerEvent: "some",
+        shouldBeHandled: false
+    }, {
+        bindPath: "stringVal",
+        bindEvent: "someEvent",
+        triggerPath: "incorrectTriggerPath",
+        triggerEvent: "someEvent",
         shouldBeHandled: false
     },  {
         bindPath: "someVirtualField",
         bindEvent: "someEvent",
         triggerPath: "",
         triggerEvent: "someEvent",
-        shouldBeHandled: true
+        shouldBeHandled: false
     },  {
-        bindPath: "testVal.someVirtualField",
+        bindPath: "stringVal.someVirtualField",
         bindEvent: "someEvent",
         triggerPath: "",
         triggerEvent: "someEvent",
-        shouldBeHandled: true
+        shouldBeHandled: false
     }];
 
     $.each(cases, function(i, c) {
