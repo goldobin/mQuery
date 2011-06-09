@@ -292,9 +292,20 @@ var ModelWrapper = function (state) {
             return this.root().find(parentPath);
         },
         val: function() {
-            return selfState.relation == null
-                    ? selfState.value
-                    : selfState.relation.value[selfState.relation.nameOrIndex]
+
+            if (arguments.length > 0) {
+                if (selfState.relation != null) {
+                    selfState.relation.value[selfState.relation.nameOrIndex] = arguments[0];
+                    return this;
+                }
+                else {
+                    throw "Value can be set only to the simple type such as number and string";
+                }
+            } else {
+                return selfState.relation == null
+                        ? selfState.value
+                        : selfState.relation.value[selfState.relation.nameOrIndex]
+            }
         },
         find: function(path) {
             var pathElements = $m.split(path);
@@ -398,6 +409,10 @@ $.fn.extend({
             },
             success: function(data /*, textStatus, request*/) {
 
+                if (data == null || data["update"] === undefined) {
+                    return;
+                }
+
                 self.model().merge(data["update"]);
 
                 if ($.isFunction(opts.success)) {
@@ -407,7 +422,6 @@ $.fn.extend({
         }));
         return this;
     }
-
 });
 
 })(jQuery, mQuery);
@@ -415,8 +429,83 @@ $.fn.extend({
 
 (function($, $m) {
 
-$.fn.bindTo = function(model) {
+$.fn.bindTo = function(model, formatterFn) {
 
+    var formattedValue = $.isFunction(formatterFn)
+            ? function (value) {
+                return formatterFn(model.val());
+            }
+            : function (value) {
+                return model.val();
+            };
+
+    this.each(function() {
+        var self = $(this),
+            guard = {};
+        if (self.is("input[type=text]")) {
+
+            function applyInputValue() {
+                self.val(formattedValue());
+            }
+
+            applyInputValue();
+
+            model.change(function(e) {
+                if (e != guard) {
+                    applyInputValue()
+                }
+            });
+
+            self
+            .keyup(function() {
+                model.val(self.val()).change(guard);
+            });
+
+        } else if(self.is("select")) {
+
+            function applySelectValue() {
+                self.val(model.val());
+            }
+
+            applySelectValue();
+
+            model.change(function(e) {
+                if (e != guard) {
+                    applySelectValue()
+                }
+            });
+
+            self
+            .change(function() {
+                model.val(self.val()).change(guard);
+            });
+
+        } else if(self.is("input:checkbox")) {
+
+            function applyCheck() {
+                self.attr("checked", model.val() === true);
+            }
+
+            applyCheck();
+
+            model.change(function(e) {
+                if (e != guard) {
+                    applyCheck();
+                }
+            });
+
+            self
+            .change(function() {
+                model.val(self.is(":checked")).change(guard);
+            });
+
+        } else {
+            self.html(formattedValue());
+            model.change(function() {
+                self.html(formattedValue());
+            });
+        }
+    });
 };
 
 })(jQuery, mQuery);
