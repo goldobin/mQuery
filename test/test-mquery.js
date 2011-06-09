@@ -285,16 +285,49 @@ test("override existing values", function() {
         }]
     });
 
+    var expectedChangeEvents = [{
+        path: "stringVal",
+        value: "otherTestVal1"
+    }, {
+        path: "arrayVal.0",
+        value: 321
+    }, {
+        path: "objectVal.stringVal2",
+        value: "otherTestVal2"
+    }];
+
+
+    $.each(expectedChangeEvents, function(i, spec) {
+        spec.triggerCount = 0;
+        wrapper.bind(spec.path, "change", function(e) {
+            spec.triggerCount ++;
+            equal (this.val(), spec.value, "Value was already updated");
+        })
+    });
+
+    var globalChangeHandlerTriggerCount = 0;
+
+    wrapper.bind("change", function() {
+        globalChangeHandlerTriggerCount++
+    });
+
     wrapper.merge({
         stringVal: "otherTestVal1",
-        arrayVal: [1],
+        arrayVal: [321],
         objectVal: {
             stringVal2: "otherTestVal2"
         }
     });
 
+    equal(globalChangeHandlerTriggerCount, expectedChangeEvents.length, "Global change event handler executed exactly same times as changes made");
+
+    $.each(expectedChangeEvents, function(i, spec) {
+        equal(spec.triggerCount, 1, "Event handler was executed one time");
+    });
+
+
     equal(wrapper.val().stringVal, "otherTestVal1");
-    equal(wrapper.val().arrayVal[0], 1);
+    equal(wrapper.val().arrayVal[0], 321);
     equal(wrapper.val().objectVal.stringVal2, "otherTestVal2");
 });
 
@@ -318,12 +351,40 @@ test("extending arrays and objects", function() {
         field: "someValue"
     };
 
+    var expectedChangeEvents = [{
+        path: "arrayVal",
+        expectedTriggerCount: 4
+    }, {
+        path: "objectVal",
+        expectedTriggerCount: 1
+    }, {
+        path: "",
+        expectedTriggerCount: 6
+    }];
+
+    $.each(expectedChangeEvents, function(i, spec) {
+        spec.triggerCount = 0;
+        wrapper.bind(spec.path, "change", function(e) {
+            spec.triggerCount ++;
+        })
+    });
+
+
     wrapper.merge({
         stringVal2: "stringVal2Value",
         arrayVal: [1, 2, 3, innerObject, 5],
         objectVal: {
             stringVal3: "stringVal3Value"
         }
+    });
+
+    $.each(expectedChangeEvents, function(i, spec) {
+        equal(
+            spec.triggerCount,
+            spec.expectedTriggerCount,
+                "Event handler was executed "
+                + spec.expectedTriggerCount
+                + " time(s)");
     });
 
     equal(wrapper.val().stringVal2, "stringVal2Value");
@@ -344,11 +405,17 @@ test("binding/triggering", function() {
         triggerEvent: "someEvent",
         shouldBeHandled: true
     }, {
-        bindPath: "stringVal",
+        bindPath: "objectVal",
+        bindEvent: "someEvent",
+        triggerPath: "objectVal.stringVal2",
+        triggerEvent: "someEvent",
+        shouldBeHandled: true
+    }, {
+        bindPath: "objectVal",
         bindEvent: "someEvent",
         triggerPath: "",
         triggerEvent: "someEvent",
-        shouldBeHandled: true
+        shouldBeHandled: false
     }, {
         bindPath: "stringVal",
         bindEvent: "someEvent",
@@ -364,13 +431,13 @@ test("binding/triggering", function() {
     },  {
         bindPath: "someVirtualField",
         bindEvent: "someEvent",
-        triggerPath: "",
+        triggerPath: "someVirtualField",
         triggerEvent: "someEvent",
         shouldBeHandled: false
     },  {
         bindPath: "stringVal.someVirtualField",
         bindEvent: "someEvent",
-        triggerPath: "",
+        triggerPath: "stringVal.someVirtualField",
         triggerEvent: "someEvent",
         shouldBeHandled: false
     }];

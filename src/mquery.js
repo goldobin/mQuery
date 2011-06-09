@@ -104,16 +104,16 @@ var ModelWrapper = function (state) {
 
         self.extend({
             bind: function() {
-                var path, name, fn;
+                var path, eventName, fn;
 
                 if (arguments.length == 3) {
                     path = arguments[0];
-                    name = arguments[1];
+                    eventName = arguments[1];
                     fn = arguments[2];
                 } else if (arguments.length == 2) {
+                    eventName = arguments[0];
                     path = "";
-                    name = arguments[1];
-                    fn = arguments[2];
+                    fn = arguments[1];
                 } else {
                     return this;
                 }
@@ -122,18 +122,18 @@ var ModelWrapper = function (state) {
                     return this;
                 }
 
-                var nameHandlerMapping = pathHandlerMapping[path];
+                var eventNameHandlerMapping = pathHandlerMapping[path];
 
-                if (nameHandlerMapping === undefined) {
-                    nameHandlerMapping = {};
-                    pathHandlerMapping[path] = nameHandlerMapping;
+                if (eventNameHandlerMapping === undefined) {
+                    eventNameHandlerMapping = {};
+                    pathHandlerMapping[path] = eventNameHandlerMapping;
                 }
 
-                var handlerSet = nameHandlerMapping[name];
+                var handlerSet = eventNameHandlerMapping[eventName];
 
                 if (handlerSet ===  undefined) {
                     handlerSet = [];
-                    nameHandlerMapping[name] = handlerSet;
+                    eventNameHandlerMapping[eventName] = handlerSet;
                 }
 
                 if ($.inArray(fn, handlerSet) == -1) {
@@ -143,30 +143,30 @@ var ModelWrapper = function (state) {
                 return this;
             },
             trigger: function() {
-                var path, name, eventParams;
+                var path, eventName, eventParams;
 
                 if (arguments.length == 3) {
                     path = arguments[0];
-                    name = arguments[1];
+                    eventName = arguments[1];
                     eventParams = arguments[2];
                 } else if (arguments.length == 3) {
+                    eventName = arguments[0];
                     path = "";
-                    name = arguments[0];
                     eventParams = arguments[1];
                 } else {
                     return this;
                 }
 
-                $.each(pathHandlerMapping, function(handlerPath, nameHandlerMapping) {
-                    if (handlerPath.indexOf(path) !== 0) {
+                $.each(pathHandlerMapping, function(eventPath, eventNameHandlerMapping) {
+                    if (path.indexOf(eventPath) != 0) {
                         return true;
                     }
-                    var handlerSet = nameHandlerMapping[name];
+                    var handlerSet = eventNameHandlerMapping[eventName];
                     if (handlerSet == null) {
                         return true;
                     }
 
-                    var callContext = self.find(handlerPath);
+                    var callContext = self.find(eventPath);
 
                     if (callContext.isVirtual()) {
                         return true;
@@ -184,7 +184,7 @@ var ModelWrapper = function (state) {
                     changes = [];
 
                 function merge(target, source, path) {
-                    var src, clone, copy, copyIsArray, replacements, clonedPath;
+                    var src, clone, copy, copyIsArray, clonedPath;
 
                     for (var name in source) {
                         src = target[ name ];
@@ -216,10 +216,13 @@ var ModelWrapper = function (state) {
 
                         // Don't bring in undefined values
                         } else if ( copy !== undefined ) {
-                            changes.push({
-                                path: clonedPath,
-                                value: copy
-                            });
+
+                            if (target[ name ] != copy) {
+                                changes.push({
+                                    path: clonedPath,
+                                    value: copy
+                                });
+                            }
                             target[ name ] = copy;
                         }
                     }
@@ -241,23 +244,23 @@ var ModelWrapper = function (state) {
         });
     } else {
         self.extend({
-            bind: function(name, fn) {
-                this.root().bind(this.path(), name, fn);
+            bind: function(eventName, fn) {
+                this.root().bind(this.path(), eventName, fn);
                 return this;
             },
-            trigger: function(name, eventParams) {
-                this.root().trigger(this.path(), name, eventParams);
+            trigger: function(eventName, eventParams) {
+                this.root().trigger(this.path(), eventName, eventParams);
                 return this;
             }
         });
     }
 
-    $.each(EVENT_ALIASES, function(i, name) {
-        self[name] = function(fnOrEventParams) {
-            if ($.isFunction(fnOrEventParams)) {
-                return this.bind(name, fnOrEventParams);
+    $.each(EVENT_ALIASES, function(i, eventName) {
+        self[eventName] = function(handlerOrEventParams) {
+            if ($.isFunction(handlerOrEventParams)) {
+                return this.bind(eventName, handlerOrEventParams);
             } else {
-                return this.trigger(name, fnOrEventParams);
+                return this.trigger(eventName, handlerOrEventParams);
             }
         }
     });
@@ -383,9 +386,7 @@ $.fn.extend({
         return selfData;
     },
     modelAjax: function(opts) {
-
         var self = this;
-
         $.ajax($.extend({}, opts, {
             dataType: opts.dataType == "json" || opts.dataType == "jsonp"
                     ? opts.dataType
