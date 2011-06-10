@@ -429,11 +429,99 @@ $.fn.extend({
 
 (function($, $m) {
 
-$.fn.bindTo = function(model, formatterFn) {
+var DEFAULT_SINGLE_INPUT_SETTINGS =  {
+    get: function() {
+        $(this).val();
+    },
+    set: function(value) {
+          $(this).val(value)
+    },
+    change: function(fn) {
+        $(this).change(fn)
+    }
+};
 
-    var formattedValue = $.isFunction(formatterFn)
+var DEFAULT_GROUPED_INPUT_SETTINGS = {
+    groupId: function() {
+        return $(this).attr("name");
+    },
+    get: function(group) {
+        var value;
+        $.each(group, function(i, e) {
+            if (e.is(":checked")) {
+                value = e.val();
+                return false;
+            }
+        });
+    },
+    set: function(group, value) {
+        $.each(group, function(i, e) {
+            e.attr("checked", e.val() == value);
+        });
+    },
+    change: function(fn) {
+        $.each(group, function(i, e) {
+            e.change(fn);
+        });
+    }
+};
+
+var singleInputs = [],
+    groupedInputs = [];
+
+$.bindTo = {
+    singleInput: function(applicableFn, opts) {
+        var settings = $.extend({}, DEFAULT_SINGLE_INPUT_SETTINGS, opts);
+        singleInputs.push({
+            applicable: applicableFn,
+            settings: opts
+        })
+    },
+    groupedInput: function(applicableFn, opts) {
+        var settings = $.extend({}, DEFAULT_GROUPED_INPUT_SETTINGS, opts);
+        groupedInputs.push({
+            applicable: applicableFn,
+            settings: opts
+        })
+    }
+};
+
+$.bindTo.singleInput(function() {
+    return $(this).is("input[type=text]")
+}, {
+    change: function(fn) {
+        $(this).keyup(fn)
+    }
+});
+
+$.bindTo.singleInput(function() {
+    return $(this).is("select")
+}, {
+    change: function(fn) {
+        $(this).keyup(fn)
+    }
+});
+
+$.bindTo.singleInput(function() {
+    return $(this).is("input:checkbox")
+}, {
+    get: function() {
+        return $(this).is(":checked")
+    },
+    set: function(value) {
+        $(this).attr("checked", value === true);
+    }
+});
+
+$.bindTo.groupedInput(function() {
+    return $(this).is("input:radio")
+}, {});
+
+$.fn.bindTo = function(model, formatFn) {
+
+    var formattedValue = $.isFunction(formatFn)
             ? function (value) {
-                return formatterFn(model.val());
+                return formatFn(model.val());
             }
             : function (value) {
                 return model.val();
@@ -442,6 +530,7 @@ $.fn.bindTo = function(model, formatterFn) {
     this.each(function() {
         var self = $(this),
             guard = {};
+
         if (self.is("input[type=text]")) {
 
             function applyInputValue() {
