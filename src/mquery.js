@@ -431,7 +431,7 @@ $.fn.extend({
 
 var DEFAULT_SINGLE_INPUT_SETTINGS =  {
     get: function() {
-        $(this).val();
+        return $(this).val();
     },
     set: function(value) {
           $(this).val(value)
@@ -453,35 +453,36 @@ var DEFAULT_GROUPED_INPUT_SETTINGS = {
                 return false;
             }
         });
+
+        return value;
     },
     set: function(group, value) {
         $.each(group, function(i, e) {
             e.attr("checked", e.val() == value);
         });
     },
-    change: function(fn) {
+    change: function(group, fn) {
         $.each(group, function(i, e) {
             e.change(fn);
         });
     }
 };
 
-var singleInputs = [],
-    groupedInputs = [];
+var inputs = [];
 
 $.bindTo = {
     singleInput: function(applicableFn, opts) {
-        var settings = $.extend({}, DEFAULT_SINGLE_INPUT_SETTINGS, opts);
-        singleInputs.push({
+        inputs.push({
+            type: "single",
             applicable: applicableFn,
-            settings: opts
+            settings: $.extend({}, DEFAULT_SINGLE_INPUT_SETTINGS, opts)
         })
     },
     groupedInput: function(applicableFn, opts) {
-        var settings = $.extend({}, DEFAULT_GROUPED_INPUT_SETTINGS, opts);
-        groupedInputs.push({
+        inputs.push({
+            type: "grouped",
             applicable: applicableFn,
-            settings: opts
+            settings: $.extend({}, DEFAULT_GROUPED_INPUT_SETTINGS, opts)
         })
     }
 };
@@ -496,11 +497,7 @@ $.bindTo.singleInput(function() {
 
 $.bindTo.singleInput(function() {
     return $(this).is("select")
-}, {
-    change: function(fn) {
-        $(this).keyup(fn)
-    }
-});
+}, {});
 
 $.bindTo.singleInput(function() {
     return $(this).is("input:checkbox")
@@ -517,6 +514,16 @@ $.bindTo.groupedInput(function() {
     return $(this).is("input:radio")
 }, {});
 
+function mapObject(o, fn) {
+    var result = {};
+
+    $.each(o, function(k, v) {
+        result[k] = fn(v);
+    });
+
+    return result;
+}
+
 $.fn.bindTo = function(model, formatFn) {
 
     var formattedValue = $.isFunction(formatFn)
@@ -525,11 +532,57 @@ $.fn.bindTo = function(model, formatFn) {
             }
             : function (value) {
                 return model.val();
-            };
+            },
+        inputProxies = [],
+        inputGroups = {};
 
     this.each(function() {
-        var self = $(this),
-            guard = {};
+        var self = this, inputFound = false;
+
+        $.each(inputs, function(i, e) {
+            if (!$.proxy(e.applicable, self)()) {
+                return true;
+            }
+
+            inputFound = true;
+            var proxies = mapObject(e.settings, function(e) {
+                return $.proxy(e, self);
+            });
+
+            if (e.type == "single") {
+                inputProxies.push(proxies);
+            } else if (e.type == "grouped") {
+                var id = (proxies["groupId"])(),
+                    group = inputGroups[id];
+
+                if (group === undefined) {
+                    group = [];
+                    inputProxies.push(
+                        mapObject(proxies, function(e) {
+                            return function() {
+                                if (arguments.length > 0) {
+                                    return e(group, arguments[0]);
+                                }
+                                return e(group);
+                            }
+                        }));
+                    inputGroups[id] = group;
+                }
+            }
+
+            return false;
+        });
+
+        if (!inputFound) {
+            var element = $(this);
+            inputProxies.push({
+                set: function(value) {
+                    element.html(value);
+                }
+            });
+        }
+
+    /*
 
         if (self.is("input[type=text]")) {
 
@@ -537,13 +590,6 @@ $.fn.bindTo = function(model, formatFn) {
                 self.val(formattedValue());
             }
 
-            applyInputValue();
-
-            model.change(function(e) {
-                if (e != guard) {
-                    applyInputValue()
-                }
-            });
 
             self
             .keyup(function() {
@@ -594,7 +640,40 @@ $.fn.bindTo = function(model, formatFn) {
                 self.html(formattedValue());
             });
         }
+
+    */
+
+
     });
+
+
+    $.each(inputProxies, function(i, proxies) {
+        var guard = {};
+
+        function applyInputValue() {
+            var value = formattedValue();
+            (proxies["set"])(value);
+        }
+
+        applyInputValue();
+
+        model.change(function(e) {
+            if (e != guard) {
+                applyInputValue()
+            }
+        });
+
+        if ($.isFunction(proxies["change"])) {
+            (proxies["change"])(function() {
+                var value = (proxies["get"])();
+                model
+                .val(value)
+                .change(guard);
+            });
+        }
+    });
+
+    return this;
 };
 
 })(jQuery, mQuery);
