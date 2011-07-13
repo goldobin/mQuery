@@ -448,8 +448,8 @@ var DEFAULT_GROUPED_INPUT_SETTINGS = {
     get: function(group) {
         var value;
         $.each(group, function(i, e) {
-            if (e.is(":checked")) {
-                value = e.val();
+            if ($(e).is(":checked")) {
+                value = $(e).val();
                 return false;
             }
         });
@@ -458,12 +458,12 @@ var DEFAULT_GROUPED_INPUT_SETTINGS = {
     },
     set: function(group, value) {
         $.each(group, function(i, e) {
-            e.attr("checked", e.val() == value);
+            $(e).attr("checked", $(e).val() == value);
         });
     },
     change: function(group, fn) {
         $.each(group, function(i, e) {
-            e.change(fn);
+            $(e).change(fn);
         });
     }
 };
@@ -568,6 +568,8 @@ $.fn.bindTo = function(model, formatFn) {
                         }));
                     inputGroups[id] = group;
                 }
+
+                group.push(self);
             }
 
             return false;
@@ -581,69 +583,6 @@ $.fn.bindTo = function(model, formatFn) {
                 }
             });
         }
-
-    /*
-
-        if (self.is("input[type=text]")) {
-
-            function applyInputValue() {
-                self.val(formattedValue());
-            }
-
-
-            self
-            .keyup(function() {
-                model.val(self.val()).change(guard);
-            });
-
-        } else if(self.is("select")) {
-
-            function applySelectValue() {
-                self.val(model.val());
-            }
-
-            applySelectValue();
-
-            model.change(function(e) {
-                if (e != guard) {
-                    applySelectValue()
-                }
-            });
-
-            self
-            .change(function() {
-                model.val(self.val()).change(guard);
-            });
-
-        } else if(self.is("input:checkbox")) {
-
-            function applyCheck() {
-                self.attr("checked", model.val() === true);
-            }
-
-            applyCheck();
-
-            model.change(function(e) {
-                if (e != guard) {
-                    applyCheck();
-                }
-            });
-
-            self
-            .change(function() {
-                model.val(self.is(":checked")).change(guard);
-            });
-
-        } else {
-            self.html(formattedValue());
-            model.change(function() {
-                self.html(formattedValue());
-            });
-        }
-
-    */
-
-
     });
 
 

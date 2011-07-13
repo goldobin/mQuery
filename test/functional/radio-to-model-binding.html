@@ -1,0 +1,31 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+    <div id="text">Initial text</div>
+    <ul>
+        <li><input id="radio1" type="radio" name="radioSelect" value="value1"/><label for="radio1">Radio 1</label></li>
+        <li><input id="radio2" type="radio" name="radioSelect" value="value2"/><label for="radio2">Radio 2</label></li>
+        <li><input id="radio3" type="radio" name="radioSelect" value="value3"/><label for="radio3">Radio 3</label></li>
+    </ul>
+
+    <script type="text/javascript" src="../../lib/jquery-1.4.4.js"></script>
+    <script type="text/javascript" src="../../src/mquery.js"></script>
+
+    <script type="text/javascript">
+        $(function() {
+
+            var model = $m({
+                radioValue: "value1"
+            });
+
+            $("#text").bindTo(model.find("radioValue"));
+            $("input[name=radioSelect]").bindTo(model.find("radioValue"));
+        })
+    </script>
+</body>
+</html>

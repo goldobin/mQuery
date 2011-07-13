@@ -1,0 +1,35 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+<body>
+    <div id="text1">Some initial inline text 1</div>
+    <div>
+        <label for="inp1">Input 1 </label>
+        <input id="inp1" type="text" value="Some initial input1 text"/>
+    </div>
+    <div>
+        <label for="inp2">Input 2 </label>
+        <input id="inp2" type="text" value="Some initial input2 text"/>
+    </div>
+
+    <script type="text/javascript" src="../../lib/jquery-1.4.4.js"></script>
+    <script type="text/javascript" src="../../src/mquery.js"></script>
+
+    <script type="text/javascript">
+        $(function() {
+
+            var model = $m({
+                someText: "Initial text from model"
+            });
+
+            $("#text1").bindTo(model.find("someText"));
+            $("#inp1").bindTo(model.find("someText"));
+            $("#inp2").bindTo(model.find("someText"));
+        })
+    </script>
+</body>
+</html>
