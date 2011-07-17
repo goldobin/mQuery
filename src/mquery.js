@@ -8,16 +8,46 @@ var mQuery = $m = function(o) {
     return mQuery.wrap(o)
 };
 
+// mQuery global settings
+(function($, $m) {
+
+var consoleEnabled = false;
+
+$m.settings = function(opts) {
+    $.each(opts, function(k, e) {
+        if (k != "apply" && $.isFunction($m.settings[k])) {
+            ($m.settings[k])(e);
+        }
+        return true;
+    })
+};
+
+$.extend($m.settings, {
+    consoleEnabled: function() {
+        if (arguments.length > 0) {
+            consoleEnabled = arguments[0] === true;
+            return $m.settings;
+        }
+        else {
+            return consoleEnabled;
+        }
+    }
+})
+
+
+})(jQuery, mQuery);
+
 (function($, $m) {
 
 var PATH_SEPARATOR = '.',
     ESCAPE_CHAR = '\\',
     ESCAPED_CHARS = [ESCAPE_CHAR, PATH_SEPARATOR, ' '];
 
-$m.log = function(fn) {
-   if ($m.log.enabled && window.console !== undefined) {
-       window.console.log(fn());
-   }
+
+$m.withConsole = function(fn) {
+    if ($m.settings.consoleEnabled() && typeof console !== undefined) {
+        $.proxy(fn, console)();
+    }
 };
 
 $m.split = function(path) {
@@ -50,7 +80,6 @@ $m.split = function(path) {
             }
         }
     }
-
     if (buff.length > 0) {
         elements.push(buff);
     }
@@ -244,7 +273,8 @@ var ModelWrapper = function (state) {
                     changedPaths = [];
 
                 $.each(nodes, function(i, e) {
-                    self.find(e.path).val(e.value);
+                    var node = self.find(e.path);
+                    node.val(e.value);
                     changedPaths.push(e.path);
                 });
 
@@ -314,15 +344,19 @@ var ModelWrapper = function (state) {
             if (arguments.length > 0) {
                 if (selfState.relation != null) {
 
-                    if (typeof selfState.relation.value[selfState.relation.nameOrIndex] === arguments[0]) {
+                    if (typeof selfState.relation.value[selfState.relation.nameOrIndex] === typeof arguments[0]) {
                         selfState.relation.value[selfState.relation.nameOrIndex] = arguments[0];
                     }
                     else {
-                        $.log("Different types of values. Ignored.")
+                        $m.withConsole(function() {
+                            this.warn("Different value types. Assignment ignored.");
+                        })
                     }
                 }
                 else {
-                    $m.log("Value can be set only for simple type such as boolean, number or string. Ignored.");
+                    $m.withConsole(function() {
+                        this.error("Value can be set only for simple type such as boolean, number or string. Ignored.");
+                    });
                 }
                 return this;
             } else {
@@ -392,11 +426,11 @@ var ModelWrapper = function (state) {
 };
 
 
-ModelWrapper.prototype = mQuery.fn = {
+ModelWrapper.prototype = $m.fn = {
     extend: jQuery.extend
 };
 
-mQuery.wrap = function(o) {
+$m.wrap = function(o) {
     return new ModelWrapper({ value: o });
 };
 

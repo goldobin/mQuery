@@ -10,10 +10,58 @@
 (function() {
 
 module("Replace");
-test("should replace simple types such as booleans, numbers and strings", function() {});
+test("should replace simple types such as booleans, numbers and strings", function() {
+    var wrapper = $m({
+        stringVal: "testVal1",
+        numberVal: 1,
+        booleanVal: true,
+        obj: {
+            stringVal: "testVal2",
+            numberVal: 1,
+            booleanVal: false
+        },
+        arr: ["test3", 2, true]
+    });
+
+    var replacements = [{
+        path: "stringVal",
+        value: "replacedTestVal1"
+    }, {
+        path: "numberVal",
+        value: 10
+    }, {
+        path: "booleanVal",
+        value: false
+    }, {
+        path: "obj.stringVal",
+        value: "replacedTestVal1"
+    }, {
+        path: "obj.numberVal",
+        value: 20
+    }, {
+        path: "obj.booleanVal",
+        value: true
+    }, {
+        path: "arr.0",
+        value: "replacedTestVal1"
+    }, {
+        path: "arr.1",
+        value: 20
+    }, {
+        path: "arr.2",
+        value: true
+    }];
+
+    wrapper.replace(replacements);
+
+    $.each(replacements, function(i, e) {
+        strictEqual(wrapper.find(e.path).val(), e.value);
+    })
+
+});
 test("should replace objects with complete copy of source", function() {});
 test("should replace arrays with complete copy of source", function() {});
-test("shold prevent to replace values to with value of different type", function() {});
+test("should prevent to replace values with value of different type", function() {});
 //test("replace", function() {
 //    var wrapper = $m({
 //        stringVal: "testVal1",
