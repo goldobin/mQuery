@@ -8,36 +8,46 @@ var mQuery = $m = function(o) {
     return mQuery.wrap(o)
 };
 
-// mQuery global settings
 (function($, $m) {
 
-var consoleEnabled = false;
+
+var settings = {
+    consoleEnabled: false
+};
 
 $m.settings = function(opts) {
     $.each(opts, function(k, e) {
-        if (k != "apply" && $.isFunction($m.settings[k])) {
+        if ($.isFunction($m.settings[k])) {
             ($m.settings[k])(e);
         }
         return true;
     })
 };
 
-$.extend($m.settings, {
-    consoleEnabled: function() {
+$.each(settings, function(k, e) {
+    $m.settings[k] = function() {
         if (arguments.length > 0) {
-            consoleEnabled = arguments[0] === true;
-            return $m.settings;
+            if (typeof arguments[0] === typeof settings[k]) {
+                var value;
+                if ($.isArray(arguments[0])) {
+                    value = $([], arguments[0]);
+                } else if ($.isPlainObject(arguments[0])){
+                    value = $({}, arguments[0]);
+                } else {
+                    value = arguments[0];
+                }
+                settings[k] = value;
+            } else {
+                $m.withConsole(function() {
+                    this.error("Expecting \"" + typeof arguments[0] + "\" as an argument. Assignment ignored.");
+                })
+            }
         }
         else {
-            return consoleEnabled;
+            return settings[k];
         }
     }
-})
-
-
-})(jQuery, mQuery);
-
-(function($, $m) {
+});
 
 var PATH_SEPARATOR = '.',
     ESCAPE_CHAR = '\\',
@@ -45,7 +55,7 @@ var PATH_SEPARATOR = '.',
 
 
 $m.withConsole = function(fn) {
-    if ($m.settings.consoleEnabled() && typeof console !== undefined) {
+    if (settings.consoleEnabled && typeof console !== undefined) {
         $.proxy(fn, console)();
     }
 };
@@ -343,7 +353,6 @@ var ModelWrapper = function (state) {
         val: function() {
             if (arguments.length > 0) {
                 if (selfState.relation != null) {
-
                     if (typeof selfState.relation.value[selfState.relation.nameOrIndex] === typeof arguments[0]) {
                         selfState.relation.value[selfState.relation.nameOrIndex] = arguments[0];
                     }
