@@ -10,9 +10,15 @@ var mQuery = $m = function(o) {
 
 (function($, $m) {
 
-var PATH_SEPARATOR = '.';
-var ESCAPE_CHAR = '\\';
-var ESCAPED_CHARS = [ESCAPE_CHAR, PATH_SEPARATOR, ' '];
+var PATH_SEPARATOR = '.',
+    ESCAPE_CHAR = '\\',
+    ESCAPED_CHARS = [ESCAPE_CHAR, PATH_SEPARATOR, ' '];
+
+$m.log = function(fn) {
+   if ($m.log.enabled && window.console !== undefined) {
+       window.console.log(fn());
+   }
+};
 
 $m.split = function(path) {
     var elements = [], buff = '',
@@ -149,10 +155,9 @@ var ModelWrapper = function (state) {
                     path = arguments[0];
                     eventName = arguments[1];
                     eventParams = arguments[2];
-                } else if (arguments.length == 3) {
-                    eventName = arguments[0];
-                    path = "";
-                    eventParams = arguments[1];
+                } else if (arguments.length == 2) {
+                    path = arguments[0];
+                    eventName = arguments[1];
                 } else {
                     return this;
                 }
@@ -181,7 +186,7 @@ var ModelWrapper = function (state) {
             },
             merge: function(source) {
                 var self = this,
-                    changes = [];
+                    changedPaths = [];
 
                 function merge(target, source, path) {
                     var src, clone, copy, copyIsArray, clonedPath;
@@ -198,7 +203,7 @@ var ModelWrapper = function (state) {
                         clonedPath = path.slice(0, path.length);
                         clonedPath.push(name);
 
-                        // Recurse if we're merging plain objects or arrays
+                        // Make recursion if we're merging plain objects or arrays
                         if (copy && ( $.isPlainObject(copy) || (copyIsArray = $.isArray(copy)) ) ) {
                             if ( copyIsArray ) {
                                 copyIsArray = false;
@@ -218,10 +223,7 @@ var ModelWrapper = function (state) {
                         } else if ( copy !== undefined ) {
 
                             if (target[ name ] != copy) {
-                                changes.push({
-                                    path: clonedPath,
-                                    value: copy
-                                });
+                                changedPaths.push($m.path(clonedPath));
                             }
                             target[ name ] = copy;
                         }
@@ -231,17 +233,34 @@ var ModelWrapper = function (state) {
                 }
 
                 merge(this.val(), source, []);
-                $.each(changes, function(i, e) {
-                    var path = $m.path(e.path);
-                    self.trigger(path, "change", {
-                        path: path,
-                        value: e.value
-                    })
+                $.each(changedPaths, function(i, e) {
+                    self.trigger(e, "change")
                 });
 
                 return this;
+            },
+            replace: function(nodes) {
+                var self = this,
+                    changedPaths = [];
+
+                $.each(nodes, function(i, e) {
+                    self.find(e.path).val(e.value);
+                    changedPaths.push(e.path);
+                });
+
+                $.each(changedPaths, function(i, e) {
+                    self.trigger(e, "change")
+                });
+            },
+            update: function(data) {
+                if (data["merge"] !== undefined) {
+                    self.merge(data["merge"]);
+                }
+                if (data["replace"] !== undefined) {
+                    self.replace(data["replace"]);
+                }
             }
-        });
+        })
     } else {
         self.extend({
             bind: function(eventName, fn) {
@@ -292,15 +311,20 @@ var ModelWrapper = function (state) {
             return this.root().find(parentPath);
         },
         val: function() {
-
             if (arguments.length > 0) {
                 if (selfState.relation != null) {
-                    selfState.relation.value[selfState.relation.nameOrIndex] = arguments[0];
-                    return this;
+
+                    if (typeof selfState.relation.value[selfState.relation.nameOrIndex] === arguments[0]) {
+                        selfState.relation.value[selfState.relation.nameOrIndex] = arguments[0];
+                    }
+                    else {
+                        $.log("Different types of values. Ignored.")
+                    }
                 }
                 else {
-                    throw "Value can be set only to the simple type such as number and string";
+                    $m.log("Value can be set only for simple type such as boolean, number or string. Ignored.");
                 }
+                return this;
             } else {
                 return selfState.relation == null
                         ? selfState.value
@@ -378,56 +402,7 @@ mQuery.wrap = function(o) {
 
 })(jQuery, mQuery);
 
-(function($, $m) {
-
-
-var MODEL_DATA_KEY = "MODEL_DATA";
-
-$.fn.extend({
-
-    model: function() {
-        var self = $(this),
-            selfData = self.data(MODEL_DATA_KEY);
-
-        if (selfData == null) {
-            selfData = $m({});
-            self.data(MODEL_DATA_KEY, selfData);
-        }
-
-        return selfData;
-    },
-    modelAjax: function(opts) {
-        var self = this;
-        $.ajax($.extend({}, opts, {
-            dataType: opts.dataType == "json" || opts.dataType == "jsonp"
-                    ? opts.dataType
-                    : "json",
-            error: function(request, textStatus, errorThrown) {
-                if ($.isFunction(opts.error)) {
-                    opts.error(request, textStatus, errorThrown);
-                }
-            },
-            success: function(data /*, textStatus, request*/) {
-
-                if (data == null || data["update"] === undefined) {
-                    return;
-                }
-
-                self.model().merge(data["update"]);
-
-                if ($.isFunction(opts.success)) {
-                    opts.success(data);
-                }
-            }
-        }));
-        return this;
-    }
-});
-
-})(jQuery, mQuery);
-
-
-(function($, $m) {
+(function($) {
 
 var DEFAULT_SINGLE_INPUT_SETTINGS =  {
     get: function() {
@@ -527,10 +502,10 @@ function mapObject(o, fn) {
 $.fn.bindTo = function(model, formatFn) {
 
     var formattedValue = $.isFunction(formatFn)
-            ? function (value) {
+            ? function () {
                 return formatFn(model.val());
             }
-            : function (value) {
+            : function () {
                 return model.val();
             },
         inputProxies = [],
@@ -615,4 +590,4 @@ $.fn.bindTo = function(model, formatFn) {
     return this;
 };
 
-})(jQuery, mQuery);
+})(jQuery);
