@@ -35,6 +35,7 @@ test("'escape' utility should escape path separators, spaces and escape characte
         equal(escaped, expecting);
     });
 });
+
 test("'path' utility should make path string from array of elements", function() {
 
     var paths = [{
@@ -65,6 +66,7 @@ test("'path' utility should make path string from array of elements", function()
         equal(path, this.expecting);
     });
 });
+
 test("'split' utility should split path to array of parts", function() {
     var paths = [{
         path: "",

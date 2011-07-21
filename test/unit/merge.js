@@ -8,6 +8,8 @@
 
 (function() {
 module("Merge");
+
+// TODO: Split this test
 test("should override existing values", function() {
     var wrapper = $m({
         stringVal: "testVal1",
@@ -71,6 +73,8 @@ test("should override existing values", function() {
     equal(wrapper.val().arrayVal[0], 321);
     equal(wrapper.val().objectVal.stringVal2, "otherTestVal2");
 });
+
+// TODO: Split this test
 test("should extend arrays and objects", function() {
     var wrapper = $m({
         stringVal: "testVal1",
@@ -133,4 +137,7 @@ test("should extend arrays and objects", function() {
     equal(wrapper.val().arrayVal[4], 5);
     equal(wrapper.val().objectVal.stringVal3, "stringVal3Value");
 });
+
+test("method 'merge' should support only plain objects", toDo);
+
 })();

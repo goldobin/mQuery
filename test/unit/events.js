@@ -10,6 +10,7 @@
 
 module("Events");
 
+// TODO: Split this test
 test("binding/triggering", function() {
 
     var cases = [{

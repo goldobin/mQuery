@@ -9,18 +9,30 @@
 (function() {
 
 module("Wrapper");
-test("initialization", function() {
+
+test("method 'wrap' ('$m') should return root wrapper with no parents", function() {
     var someObj = {
             someVal1: "someVal1"
         },
         wrapped = $m(someObj);
 
     ok(wrapped.isRoot(), "must be root");
-    equal(wrapped.val(), someObj);
+    deepEqual(wrapped.val(), someObj);
     ok(wrapped === wrapped.root());
     ok(null === wrapped.parent());
 });
-test("valid search", function() {
+
+test("method 'wrap' ('$m') should support only plain objects", toDo);
+
+test("root wrapper should store deep copy of source object or array", toDo);
+
+test("method 'val' while assigning an object should support only of plain objects as a source", toDo);
+test("method 'val' should prevent an assignment source and wrapped value types are different", toDo);
+test("method 'val' while assign object or array should replace original instance with complete copy of source", toDo);
+test("method 'val' should return complete copy of wrapped object or array", toDo);
+
+// TODO: Split this test
+test("search by valid path should return valid not virtual wrapper", function() {
     var o = {
             stringVal: "testVal1",
             numberVal: 1,
@@ -94,25 +106,28 @@ test("valid search", function() {
 
     });
 });
-test("invalid search", function() {
+
+// TODO: Split this test
+test("search by not existent path should return virtual wrapper", function() {
 
     var wrapper = $m({
-            stringVal: "testVal1",
-            numberVal: 1,
-            objectVal: {
-                stringVal2: "test1",
-                objectVal2: {
-                    someVal2: "test2"
-                }
-            },
-            arrayVal: ["test3", 2, {
-                stringVal3: "test4",
-                objectVal3: {
-                    someVal3: "test5"
-                }
-            }]
-        }),
-        virtualWrapperSearchCases = [
+        stringVal: "testVal1",
+        numberVal: 1,
+        objectVal: {
+            stringVal2: "test1",
+            objectVal2: {
+                someVal2: "test2"
+            }
+        },
+        arrayVal: ["test3", 2, {
+            stringVal3: "test4",
+            objectVal3: {
+                someVal3: "test5"
+            }
+        }]
+    });
+
+    var virtualWrapperSearchCases = [
         /* "", */  // TODO: Handle empty path case
         "stringVal.length",
         "numberVal.someFakeField",
@@ -130,11 +145,12 @@ test("invalid search", function() {
 
         ok(foundWrapper.isVirtual(), "Wrapper is virtual");
         ok(wrapper == foundWrapper.root(), "Root is root wrapper");
-        ok(undefined === foundWrapper.val(), "Value is undefined");
+        ok(foundWrapper.val() === undefined, "Value is undefined");
         strictEqual(foundWrapper.path(), path, "Path valid");
 
 
     });
 });
+
 
 })();
