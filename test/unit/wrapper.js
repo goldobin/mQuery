@@ -10,21 +10,84 @@
 
 module("Wrapper");
 
+test(
+    "method 'wrap' ('$m') should rise an exception " +
+    "if specified object is a basic type because " +
+    "root element of hierarchy should be an object",
+    function() {
+        raises(function() {
+            $m(true);
+        });
+
+        raises(function() {
+            $m(10);
+        });
+
+        raises(function() {
+            $m("test");
+        });
+    }
+);
+
+test(
+    "method 'wrap' ('$m') should rise an exception " +
+    "if specified object is not a plain objects",
+    function() {
+
+        function SomeConstructor() {
+            this.value = 345;
+        }
+
+        raises(function() {
+            $m(new SomeConstructor());
+        });
+    }
+);
+
+test(
+    "method 'wrap' ('$m') should return root wrapper with empty object wrapped " +
+    "when no object specified",
+    function() {
+        var o = $m().val();
+        ok(typeof o === "object");
+        ok($.isEmptyObject(o));
+    }
+);
+
+
+
 test("method 'wrap' ('$m') should return root wrapper with no parents", function() {
-    var someObj = {
+    var o = {
             someVal1: "someVal1"
         },
-        wrapped = $m(someObj);
+        wrapper = $m(o);
 
-    ok(wrapped.isRoot(), "must be root");
-    deepEqual(wrapped.val(), someObj);
-    ok(wrapped === wrapped.root());
-    ok(null === wrapped.parent());
+    ok(wrapper.isRoot(), "must be root");
+    deepEqual(wrapper.val(), o);
+    ok(wrapper === wrapper.root());
+    ok(null === wrapper.parent());
 });
 
-test("method 'wrap' ('$m') should support only plain objects", toDo);
+test("root wrapper should store deep copy of source object or array", function() {
+    var o = {
+        stringVal: "testVal1",
+        numberVal: 1,
+        booleanVal: false,
+        objectVal: {
+            stringVal2: "test1",
+            numberVal2: 2,
+            booleanVal2: false
+        },
+        arrayVal: ["testVal3", 3, false]
+    };
 
-test("root wrapper should store deep copy of source object or array", toDo);
+    var wrapper = $m(o);
+
+    deepEqual(wrapper.val(), o);
+    o.stringVal = "testVal2";
+    o.anotherStringVal = "testVal3";
+    notDeepEqual(wrapper.val(), o);
+});
 
 test("method 'val' while assigning an object should support only of plain objects as a source", toDo);
 test("method 'val' should prevent an assignment source and wrapped value types are different", toDo);

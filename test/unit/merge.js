@@ -138,6 +138,14 @@ test("should extend arrays and objects", function() {
     equal(wrapper.val().objectVal.stringVal3, "stringVal3Value");
 });
 
-test("method 'merge' should support only plain objects", toDo);
+test("method 'merge' should support only plain objects", function() {
+    function SomeConstructor() {
+        this.field = "value";
+    }
+
+    raises(function() {
+        $m().merge(new SomeConstructor());
+    });
+});
 
 })();

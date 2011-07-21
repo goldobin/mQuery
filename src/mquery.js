@@ -4,8 +4,13 @@
  * Copyright 2011, Oleksandr Goldobin.
  */
 
-var mQuery = $m = function(o) {
-    return mQuery.wrap(o)
+var mQuery = $m = function() {
+
+    if (arguments.length > 0) {
+        return mQuery.wrap(arguments[0]);
+    }
+
+    return mQuery.wrap();
 };
 
 (function($, $m) {
@@ -223,7 +228,19 @@ var ModelWrapper = function (state) {
 
                 return this;
             },
-            merge: function(source) {
+            merge: function() {
+
+                if (arguments.length == 0) {
+                    return this;
+                }
+
+                $.each(arguments, function(i, argument) {
+                    if (typeof argument !== "object" ||
+                        !($.isPlainObject(argument) || $.isArray(argument))) {
+                        throw "Only plain objects and arrays are acceptable";
+                    }
+                });
+
                 var self = this,
                     changedPaths = [];
 
@@ -271,7 +288,10 @@ var ModelWrapper = function (state) {
                     return target;
                 }
 
-                merge(this.val(), source, []);
+                $.each(arguments, function(i, argument) {
+                    merge(selfState.value, argument, []);
+                });
+
                 $.each(changedPaths, function(i, e) {
                     self.trigger(e, "change")
                 });
@@ -439,7 +459,33 @@ ModelWrapper.prototype = $m.fn = {
     extend: jQuery.extend
 };
 
-$m.wrap = function(o) {
+$m.wrap = function() {
+
+    var o;
+    if (arguments.length > 0) {
+        var exceptionMessage = "Only plain objects and arrays are acceptable";
+
+        if (typeof arguments[0] !== "object") {
+            throw exceptionMessage;
+        }
+
+        var ref = arguments[0];
+
+        if ($.isPlainObject(ref)) {
+            o = $.extend({}, ref);
+        }
+        else if ($.isPlainObject()) {
+            o = $.extend([], ref);
+        }
+        else {
+            throw exceptionMessage;
+        }
+    }
+    else {
+        o = {}
+    }
+
+
     return new ModelWrapper({ value: o });
 };
 
