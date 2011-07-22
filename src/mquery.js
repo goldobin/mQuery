@@ -135,7 +135,7 @@ var EVENT_ALIASES = [
 ];
 
 var DEFAULT_MODEL_WRAPPER_STATE = {
-    root: null,
+    root: undefined,
     path: []
 };
 
@@ -143,13 +143,12 @@ var ModelWrapper = function (state) {
 
     var self = this,
         selfState = $.extend({}, DEFAULT_MODEL_WRAPPER_STATE, state),
-        isRoot = selfState.root == null || selfState.path.length == 0,
+        isRoot = selfState.root === undefined || selfState.path.length == 0,
         pathHandlerMapping;
 
     if (isRoot) {
         selfState.root = self;
         selfState.path = [];
-        selfState.relation = null;
         pathHandlerMapping = {};
 
         self.extend({
@@ -289,7 +288,7 @@ var ModelWrapper = function (state) {
                 }
 
                 $.each(arguments, function(i, argument) {
-                    merge(selfState.value, argument, []);
+                    merge(selfState.relation.parentRef[selfState.relation.nameOrIndex], argument, []);
                 });
 
                 $.each(changedPaths, function(i, e) {
@@ -352,17 +351,14 @@ var ModelWrapper = function (state) {
             return selfState.path.length == 0;
         },
         isVirtual: function() {
-            return selfState.value === undefined && (
-                selfState.relation !== undefined
-                        ? selfState.relation.value[selfState.relation.nameOrIndex] === undefined
-                        : true);
+            return selfState.relation === undefined || selfState.relation.parentRef[selfState.relation.nameOrIndex] === undefined;
         },
         path: function() {
             return $m.path(selfState.path);
         },
         parent: function() {
             if (this.isRoot()) {
-                return null;
+                return undefined;
             }
 
             var path = selfState.path,
@@ -371,31 +367,33 @@ var ModelWrapper = function (state) {
             return this.root().find(parentPath);
         },
         val: function() {
+
+            if (this.isVirtual()) {
+                if (arguments.length > 0) {
+                    throw "Can't assign value for virtual wrapper.";
+                } else {
+                    return undefined;
+                }
+            }
+
             if (arguments.length > 0) {
-                if (selfState.relation != null) {
-                    if (typeof selfState.relation.value[selfState.relation.nameOrIndex] === typeof arguments[0]) {
-                        selfState.relation.value[selfState.relation.nameOrIndex] = arguments[0];
-                    }
-                    else {
-                        $m.withConsole(function() {
-                            this.warn("Different value types. Assignment ignored.");
-                        })
-                    }
+                if (typeof selfState.relation.parentRef[selfState.relation.nameOrIndex] !== typeof arguments[0]) {
+                    throw "Different value types. Assignment ignored.";
                 }
-                else {
-                    $m.withConsole(function() {
-                        this.error("Value can be set only for simple type such as boolean, number or string. Ignored.");
-                    });
-                }
+
+                selfState.relation.parentRef[selfState.relation.nameOrIndex] = arguments[0];
+
                 return this;
             } else {
-                return selfState.relation == null
-                        ? selfState.value
-                        : selfState.relation.value[selfState.relation.nameOrIndex]
+                return selfState.relation.parentRef[selfState.relation.nameOrIndex]
             }
         },
         find: function(path) {
             var pathElements = $m.split(path);
+
+            if (pathElements.length == 0) {
+                return this;
+            }
 
             function virtualWrapper() {
                 return new ModelWrapper({
@@ -404,25 +402,25 @@ var ModelWrapper = function (state) {
                 });
             }
 
-            var nameOrIndex = null,
-                parentValue = null,
+            var nameOrIndex,
+                parentRef,
                 value = this.val();
 
             for (var i = 0; i < pathElements.length; i++) {
 
                 nameOrIndex = pathElements[i];
 
-                if (value != null) {
+                if (value !== undefined) {
                     if ($.isArray(value)) {
                         nameOrIndex = parseInt(nameOrIndex);
                         if ($.isNaN(nameOrIndex)) {
                             return virtualWrapper();
                         }
-                        parentValue = value;
+                        parentRef = value;
                         value = value[nameOrIndex];
                         continue;
-                    } else if (typeof value === "object" || typeof value === "function"){
-                        parentValue = value;
+                    } else if ($.isPlainObject(value)){
+                        parentRef = value;
                         value = value[nameOrIndex];
                         continue;
                     }
@@ -431,25 +429,18 @@ var ModelWrapper = function (state) {
                 return virtualWrapper();
             }
 
-            var state = {
-                root: selfState.root,
-                path: pathElements
-            };
-
-            if ((typeof value === "object" && value != null) || (typeof value === "function")) {
-                state = $.extend(state, {
-                    value: value
-                });
+            if (nameOrIndex === undefined || parentRef === undefined) {
+                return virtualWrapper();
             } else {
-                state = $.extend(state, {
+                return new ModelWrapper({
+                    root: selfState.root,
+                    path: pathElements,
                     relation: {
                         nameOrIndex: nameOrIndex,
-                        value: parentValue
+                        parentRef: parentRef
                     }
                 });
             }
-
-            return new ModelWrapper(state);
         }
     });
 };
@@ -472,12 +463,10 @@ $m.wrap = function() {
         var ref = arguments[0];
 
         if ($.isPlainObject(ref)) {
-            o = $.extend({}, ref);
-        }
-        else if ($.isPlainObject()) {
-            o = $.extend([], ref);
-        }
-        else {
+            o = $.extend(true, {}, ref);
+        } else if ($.isArray(ref)) {
+            o = $.extend(true, [], ref);
+        } else {
             throw exceptionMessage;
         }
     }
@@ -485,8 +474,12 @@ $m.wrap = function() {
         o = {}
     }
 
-
-    return new ModelWrapper({ value: o });
+    return new ModelWrapper({
+        relation: {
+            nameOrIndex: "root",
+            parentRef: {root: o}
+        }
+    });
 };
 
 })(jQuery, mQuery);

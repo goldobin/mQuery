@@ -64,8 +64,8 @@ test("method 'wrap' ('$m') should return root wrapper with no parents", function
 
     ok(wrapper.isRoot(), "must be root");
     deepEqual(wrapper.val(), o);
-    ok(wrapper === wrapper.root());
-    ok(null === wrapper.parent());
+    strictEqual(wrapper.root(), wrapper);
+    strictEqual(wrapper.parent(), undefined);
 });
 
 test("root wrapper should store deep copy of source object or array", function() {
@@ -89,10 +89,138 @@ test("root wrapper should store deep copy of source object or array", function()
     notDeepEqual(wrapper.val(), o);
 });
 
-test("method 'val' while assigning an object should support only of plain objects as a source", toDo);
-test("method 'val' should prevent an assignment source and wrapped value types are different", toDo);
-test("method 'val' while assign object or array should replace original instance with complete copy of source", toDo);
-test("method 'val' should return complete copy of wrapped object or array", toDo);
+
+test("method 'val' should accept values of the same type as wrapped object", function() {
+    var o = {
+        stringVal: "testVal1",
+        numberVal: 1,
+        booleanVal: false,
+        objectVal: {
+            stringVal2: "test1",
+            numberVal2: 2,
+            booleanVal2: false
+        },
+        arrayVal: ["testVal3", 3, false]
+    },
+    validAssignmentCases = [{
+            field: "stringVal",
+            valueToAssign: "newTestVal"
+        }, {
+            field: "numberVal",
+            valueToAssign: 20
+        }, {
+            field: "booleanVal",
+            valueToAssign: true
+        }, {
+            field: "objectVal",
+            valueToAssign: {
+                someVal1: "test",
+                someVal2: 190,
+                someVal3: false
+            }
+        }, {
+            field: "arrayVal",
+            valueToAssign: [10, 40, 50]
+        }
+    ],
+    invalidAssignmentCases = [{
+            field: "stringVal",
+            valueToAssign: 10
+        }, {
+            field: "numberVal",
+            valueToAssign: true
+        }, {
+            field: "booleanVal",
+            valueToAssign: {
+                someVal1: false
+            }
+        }, {
+            field: "objectVal",
+            valueToAssign: "test"
+        }, {
+            field: "objectVal",
+            valueToAssign: [10, 300, 50]
+        }, {
+            field: "arrayVal",
+            valueToAssign: {
+                someVal1: "test1"
+            }
+        }, {
+            field: "arrayVal",
+            valueToAssign: false
+        }
+    ];
+
+    $.each(validAssignmentCases, function(i, e) {
+        var wrapper = $m(o);
+
+        wrapper.find(e.field).val(e.valueToAssign);
+        deepEqual(wrapper.find(e.field).val(), e.valueToAssign);
+    });
+
+    $.each(invalidAssignmentCases, function(i, e) {
+        var wrapper = $m(o);
+
+        raises(function() {
+            wrapper.find(e.field).val(e.valueToAssign);
+        });
+    });
+});
+
+test(
+    "method 'val' while assigning a plain object or array should replace " +
+    "original instance with complete copy of source",
+    function() {
+        var wrapper = $m({
+            objectVal: {
+                stringVal: "test1",
+                numberVal: 2,
+                booleanVal: false
+            },
+            arrayVal: ["testVal3", 3, false]
+        }),
+        obj = {
+            someVal1: "test",
+            someVal2: 3
+        },
+        cloneOfObj = $.extend(true, {}, obj),
+        arr = [10, 40, 50],
+        cloneOfArr = $.extend(true, [], arr);
+
+        wrapper.find("objectVal").val(obj);
+        deepEqual(wrapper.find("objectVal").val(), obj);
+        obj.someVal1 = 678;
+        deepEqual(wrapper.find("objectVal").val(), cloneOfObj);
+
+        wrapper.find("arrayVal").val(arr);
+        deepEqual(wrapper.find("arrayVal").val(), arr);
+        arr.push(891);
+        deepEqual(wrapper.find("arrayVal").val(), cloneOfArr);
+    }
+);
+
+test("method 'val' should return complete copy of wrapped object or array", function() {
+    var obj = {
+        objectVal: {
+            stringVal: "test1",
+            numberVal: 2,
+            booleanVal: false
+        },
+        arrayVal: ["testVal3", 3, false]
+    },
+    cloneOfObj = $.extend(true, {}, obj),
+    wrapper = $m(obj);
+
+    var objectVal = wrapper.find("objectVal").val(),
+    arrayVal = wrapper.find("arrayVal").val();
+
+    objectVal.stringVal2 = "test2";
+    arrayVal.push("test2");
+
+    deepEqual(wrapper.val(), cloneOfObj);
+});
+
+test("method 'val' should prevent assignment on virtual wrapper", toDo);
 
 // TODO: Split this test
 test("search by valid path should return valid not virtual wrapper", function() {
@@ -157,7 +285,7 @@ test("search by valid path should return valid not virtual wrapper", function() 
         var foundWrapper = wrapper.find(expectingPath);
 
         ok(!foundWrapper.isVirtual(), "Wrapper is not virtual");
-        equal(foundWrapper.val(), expectingVal, "Value not changed");
+        deepEqual(foundWrapper.val(), expectingVal, "Value not changed");
         equal(typeof foundWrapper.val(), validSearch.type, "Value type not changed");
 
         if (validSearch.isArray === true) {
