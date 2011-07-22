@@ -366,6 +366,14 @@ var ModelWrapper = function (state) {
 
             return this.root().find(parentPath);
         },
+        __plainVal__: function() {
+            if (arguments.length > 0) {
+                selfState.relation.parentRef[selfState.relation.nameOrIndex] = arguments[0];
+            }
+            else {
+                return selfState.relation.parentRef[selfState.relation.nameOrIndex];
+            }
+        },
         val: function() {
 
             if (this.isVirtual()) {
@@ -377,15 +385,43 @@ var ModelWrapper = function (state) {
             }
 
             if (arguments.length > 0) {
-                if (typeof selfState.relation.parentRef[selfState.relation.nameOrIndex] !== typeof arguments[0]) {
-                    throw "Different value types. Assignment ignored.";
+                var origValue = this.__plainVal__(),
+                    newValue = arguments[0];
+
+                if (typeof origValue !== typeof newValue) {
+                    throw "Different value types.";
                 }
 
-                selfState.relation.parentRef[selfState.relation.nameOrIndex] = arguments[0];
+                if ($.isArray(origValue)) {
+                    if (!$.isArray(newValue)) {
+                        throw "Different value types.";
+                    }
+                    this.__plainVal__($.extend(true, [], newValue));
+                    return this;
+                }
 
+                if (typeof origValue === "object") {
+                    if (!$.isPlainObject(newValue)) {
+                        throw "Object is not plain object.";
+                    }
+                    this.__plainVal__($.extend(true, {}, newValue));
+                    return this;
+                }
+
+                this.__plainVal__(newValue);
                 return this;
             } else {
-                return selfState.relation.parentRef[selfState.relation.nameOrIndex]
+                var ref = this.__plainVal__();
+
+                if ($.isArray(ref)) {
+                    return $.extend(true, [], ref);
+                }
+
+                if ($.isPlainObject(ref)) {
+                    return $.extend(true, {}, ref);
+                }
+
+                return ref;
             }
         },
         find: function(path) {
@@ -404,7 +440,7 @@ var ModelWrapper = function (state) {
 
             var nameOrIndex,
                 parentRef,
-                value = this.val();
+                value = this.__plainVal__();
 
             for (var i = 0; i < pathElements.length; i++) {
 

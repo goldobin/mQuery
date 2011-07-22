@@ -220,7 +220,16 @@ test("method 'val' should return complete copy of wrapped object or array", func
     deepEqual(wrapper.val(), cloneOfObj);
 });
 
-test("method 'val' should prevent assignment on virtual wrapper", toDo);
+test("method 'val' should prevent assignment on virtual wrapper", function() {
+    raises(function() {
+        $m({ stringVal: "test1" }).find("someNotExistentValue").val("test")
+    });
+});
+
+test("method 'val' should return undefined on virtual wrapper", function() {
+    equal($m({ stringVal: "test1" }).find("someNotExistentValue").val(), undefined);
+});
+
 
 // TODO: Split this test
 test("search by valid path should return valid not virtual wrapper", function() {
