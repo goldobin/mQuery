@@ -15,7 +15,6 @@ var mQuery = $m = function() {
 
 (function($, $m) {
 
-
 var settings = {
     consoleEnabled: false
 };
@@ -29,15 +28,15 @@ $m.settings = function(opts) {
     })
 };
 
-$.each(settings, function(k, e) {
+$.each(settings, function(k) {
     $m.settings[k] = function() {
         if (arguments.length > 0) {
             if (typeof arguments[0] === typeof settings[k]) {
                 var value;
                 if ($.isArray(arguments[0])) {
-                    value = $([], arguments[0]);
+                    value = $.extend(true, [], arguments[0]);
                 } else if ($.isPlainObject(arguments[0])){
-                    value = $({}, arguments[0]);
+                    value = $.extend(true, {}, arguments[0]);
                 } else {
                     value = arguments[0];
                 }
@@ -47,8 +46,7 @@ $.each(settings, function(k, e) {
                     this.error("Expecting \"" + typeof arguments[0] + "\" as an argument. Assignment ignored.");
                 })
             }
-        }
-        else {
+        } else {
             return settings[k];
         }
     }
@@ -56,8 +54,11 @@ $.each(settings, function(k, e) {
 
 var PATH_SEPARATOR = '.',
     ESCAPE_CHAR = '\\',
-    ESCAPED_CHARS = [ESCAPE_CHAR, PATH_SEPARATOR, ' '];
-
+    ESCAPED_CHARS = [
+        ESCAPE_CHAR,
+        PATH_SEPARATOR,
+        ' '
+    ];
 
 $m.withConsole = function(fn) {
     if (settings.consoleEnabled && typeof console !== undefined) {
@@ -144,6 +145,13 @@ var ModelWrapper = function (state) {
     var self = this,
         selfState = $.extend({}, DEFAULT_MODEL_WRAPPER_STATE, state),
         isRoot = selfState.root === undefined || selfState.path.length == 0,
+        wrappedVal = function() {
+            if (arguments.length > 0) {
+                selfState.relation.parentRef[selfState.relation.nameOrIndex] = arguments[0];
+            } else {
+                return selfState.relation.parentRef[selfState.relation.nameOrIndex];
+            }
+        },
         pathHandlerMapping;
 
     if (isRoot) {
@@ -151,6 +159,7 @@ var ModelWrapper = function (state) {
         selfState.path = [];
         pathHandlerMapping = {};
 
+        // Methods for root wrapper
         self.extend({
             bind: function() {
                 var path, eventName, fn;
@@ -321,6 +330,7 @@ var ModelWrapper = function (state) {
             }
         })
     } else {
+        // Methods for node wrappers
         self.extend({
             bind: function(eventName, fn) {
                 this.root().bind(this.path(), eventName, fn);
@@ -343,6 +353,8 @@ var ModelWrapper = function (state) {
         }
     });
 
+
+    // Common for root and nodes methods
     self.extend({
         root : function() {
             return selfState.root;
@@ -366,14 +378,6 @@ var ModelWrapper = function (state) {
 
             return this.root().find(parentPath);
         },
-        __plainVal__: function() {
-            if (arguments.length > 0) {
-                selfState.relation.parentRef[selfState.relation.nameOrIndex] = arguments[0];
-            }
-            else {
-                return selfState.relation.parentRef[selfState.relation.nameOrIndex];
-            }
-        },
         val: function() {
 
             if (this.isVirtual()) {
@@ -385,33 +389,33 @@ var ModelWrapper = function (state) {
             }
 
             if (arguments.length > 0) {
-                var origValue = this.__plainVal__(),
+                var originalValue = wrappedVal(),
                     newValue = arguments[0];
 
-                if (typeof origValue !== typeof newValue) {
+                if (typeof originalValue !== typeof newValue) {
                     throw "Different value types.";
                 }
 
-                if ($.isArray(origValue)) {
+                if ($.isArray(originalValue)) {
                     if (!$.isArray(newValue)) {
                         throw "Different value types.";
                     }
-                    this.__plainVal__($.extend(true, [], newValue));
+                    wrappedVal($.extend(true, [], newValue));
                     return this;
                 }
 
-                if (typeof origValue === "object") {
+                if (typeof originalValue === "object") {
                     if (!$.isPlainObject(newValue)) {
                         throw "Object is not plain object.";
                     }
-                    this.__plainVal__($.extend(true, {}, newValue));
+                    wrappedVal($.extend(true, {}, newValue));
                     return this;
                 }
 
-                this.__plainVal__(newValue);
+                wrappedVal(newValue);
                 return this;
             } else {
-                var ref = this.__plainVal__();
+                var ref = wrappedVal();
 
                 if ($.isArray(ref)) {
                     return $.extend(true, [], ref);
@@ -440,7 +444,7 @@ var ModelWrapper = function (state) {
 
             var nameOrIndex,
                 parentRef,
-                value = this.__plainVal__();
+                value = wrappedVal();
 
             for (var i = 0; i < pathElements.length; i++) {
 
@@ -505,8 +509,7 @@ $m.wrap = function() {
         } else {
             throw exceptionMessage;
         }
-    }
-    else {
+    } else {
         o = {}
     }
 

@@ -60,24 +60,25 @@ test("binding/triggering", function() {
     $.each(cases, function(i, c) {
         caseNumberMessage(i);
 
-        var wrapper = $m({
-                    stringVal: "testVal1",
-                    numberVal: 1,
-                    objectVal: {
-                        stringVal2: "test1",
-                        objectVal2: {
-                            someVal2: "test2"
-                        }
-                    },
-                    arrayVal: ["test3", 2, {
-                        stringVal3: "test4",
-                        objectVal3: {
-                            someVal3: "test5"
-                        }
-                    }]
-                }),
-                eventHandledTimes = 0,
-                eventParams = {test: "Param Value", secondField: "Param Value 2"};
+        var
+        wrapper = $m({
+            stringVal: "testVal1",
+            numberVal: 1,
+            objectVal: {
+                stringVal2: "test1",
+                objectVal2: {
+                    someVal2: "test2"
+                }
+            },
+            arrayVal: ["test3", 2, {
+                stringVal3: "test4",
+                objectVal3: {
+                    someVal3: "test5"
+                }
+            }]
+        }),
+        eventHandledTimes = 0,
+        eventParams = {test: "Param Value", secondField: "Param Value 2"};
 
         wrapper.bind(c.bindPath, c.bindEvent, function(e) {
             eventHandledTimes++;
@@ -92,4 +93,4 @@ test("binding/triggering", function() {
 });
 
 
-})()
+})();
