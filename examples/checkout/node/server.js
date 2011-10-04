@@ -1,13 +1,22 @@
-var http = require('http');
-var settings = require("./settings.js");
+var http = require('http'),
+    settings = require("./settings.js");
+    fs = require("fs");
 
 http
 .createServer(function (req, res) {
-    res.writeHead(200, {
-        "Content-Type": "text/plain"
-    });
 
-    res.end('Hello World\n');
+    if (/^\/$/.test(req.url)) {
+        fs.readFile("../html/home.html", function(err, data) {
+            res.writeHead(200, {
+                "Content-Type": "text/html"
+            });
+            res.write(data, "UTF-8");
+            res.end();
+        });
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
 })
 .listen(
     settings.bindPort,
