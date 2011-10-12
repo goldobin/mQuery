@@ -453,7 +453,7 @@ var ModelWrapper = function (state) {
                 if (value !== undefined) {
                     if ($.isArray(value)) {
                         nameOrIndex = parseInt(nameOrIndex);
-                        if ($.isNaN(nameOrIndex)) {
+                        if (isNaN(nameOrIndex)) {
                             return virtualWrapper();
                         }
                         parentRef = value;
