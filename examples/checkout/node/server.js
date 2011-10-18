@@ -1,21 +1,20 @@
-var http = require('http'),
+
+var fs = require("fs"),
+    http = require('http'),
+    responders = require("./http-responders.js"),
     settings = require("./settings.js");
-    fs = require("fs");
 
 http
 .createServer(function (req, res) {
 
     if (/^\/$/.test(req.url)) {
         fs.readFile("../html/home.html", function(err, data) {
-            res.writeHead(200, {
-                "Content-Type": "text/html"
+            responders.success.ok(res, { "Content-Type": "text/html" }, function() {
+                res.write(data, "UTF-8");
             });
-            res.write(data, "UTF-8");
-            res.end();
         });
     } else {
-        res.writeHead(404);
-        res.end();
+        responders.clientError.notFound(res);
     }
 })
 .listen(
