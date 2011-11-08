@@ -2,6 +2,7 @@
 
 /* usage */
 
+/*
 router
 .get("/")
     .write({
@@ -35,10 +36,12 @@ router
 
     })
 .end();
+*/
 
 
 var $ = require("dsign.js"),
 http = require('http'),
+fs = require("fs"),
 url = require('url'),
 status = require('./status.js'),
 httpMethods = [
@@ -56,8 +59,8 @@ plugins = exports.plugins = {};
 exports.createRouter = function() {
     var
     handlers = $.map(httpMethods, function() { return [] }),
-    serverStarted = false;
-    return $.extend(
+    serverStarted = false,
+    router = $.extend(
         {
             listen: function(opts) {
                 var settings = $.extend({}, serverDefaults, opts);
@@ -94,6 +97,8 @@ exports.createRouter = function() {
         $.transform(httpMethods, function(i, httpMethod) {
             return function(path) {
                 return $.extend(
+                    {},
+                    plugins,
                     {
                         handle: function(fn) {
                             if (serverStarted) {
@@ -102,17 +107,57 @@ exports.createRouter = function() {
                             handlers[httpMethod].push({
                                 path: path,
                                 fn: fn
-                            })
+                            });
+                            return this;
+                        },
+                        end: function() {
+                            return router;
                         }
-                    },
-                    plugins
+                    }
                 )
             }
         })
     );
+
+    return router;
 };
 
+plugins.write = function(opts) {
 
+    var settings = $.extend({
+            charset: "utf-8",
+            type: "text/plain"
+        },
+        opts),
+        contentType = settings.type + "; charset:" + settings.charset;
+
+    return this.handle(function(req, res) {
+        function respond (content) {
+            var headers = {
+                "Content-Type": contentType,
+                "Content-Length": content.length
+            };
+
+            status.success.ok(res, headers, function() {
+                res.write(content, settings.charset);
+            });
+        }
+
+        if (settings.content !== undefined) {
+            respond(settings.content);
+        } else if (settings.file !== undefined) {
+            fs.readFile(opts.file, function(err, data) {
+
+                if (err) {
+                    status.notFound();
+                    return;
+                }
+
+                respond(data)
+            });
+        }
+    })
+};
 
 
 
