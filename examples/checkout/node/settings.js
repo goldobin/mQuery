@@ -4,12 +4,12 @@ var settings = {
         "bindPort": 8080,
         "verbose": false
     },
-    util = require("./util.js"),
+    $ = require("dsign.js"),
     fs = require("fs"),
     customSettings = JSON.parse(fs.readFileSync("settings.json", "UTF-8"));
 
-util.extend(settings, customSettings);
-util.each(settings, function(name, value) {
+$.extend(settings, customSettings);
+$.each(settings, function(name, value) {
     Object.defineProperty(
         exports,
         name, {
@@ -21,7 +21,7 @@ util.each(settings, function(name, value) {
 
 if (settings.verbose) {
     console.log("Settings are:");
-    util.each(settings, function(name, value) {
+    $.each(settings, function(name, value) {
         console.log("\t" + name + " = " + value)
     });
 }

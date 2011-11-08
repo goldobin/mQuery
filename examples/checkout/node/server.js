@@ -1,7 +1,7 @@
 
 var fs = require("fs"),
     http = require('http'),
-    responders = require("./http-responders.js"),
+    status = require("status.js"),
     settings = require("./settings.js");
 
 http
@@ -9,12 +9,12 @@ http
 
     if (/^\/$/.test(req.url)) {
         fs.readFile("../html/home.html", function(err, data) {
-            responders.success.ok(res, { "Content-Type": "text/html" }, function() {
+            status.success.ok(res, { "Content-Type": "text/html" }, function() {
                 res.write(data, "UTF-8");
             });
         });
     } else {
-        responders.clientError.notFound(res);
+        status.notFound(res);
     }
 })
 .listen(

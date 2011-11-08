@@ -1,9 +1,43 @@
 
 var each = exports.each = function(o, fn) {
+        var name, i = 0,
+			length = o.length,
+			isObject = length === undefined || isFunction(o);
+
+        if (isObject) {
+            for (name in o) {
+                if (fn(name, o[ name ]) === false) {
+                    break;
+                }
+            }
+        } else {
+            for (; i < length; i++) {
+                if (fn(i, o[ i ]) === false) {
+                    break;
+                }
+            }
+        }
+
+		return o;
+    },
+    transform = exports.transform = function(o, fn) {
+        var result = {};
         for (var key in o) {
-            fn(key, o[key]);
+            result[key] = fn(key, o[key])
         }
     },
+    map = function (a, fn) {
+		var result = [], i, value;
+
+		for (i in a) {
+			value = fn(a[ i ], i);
+			if ( value != null ) {
+				result.push(value);
+			}
+		}
+
+		return result.concat.apply( [], result );
+	},
     isFunction = exports.isFunction = function(o) {
         return o != null && typeof o === "function";
     },
@@ -14,8 +48,8 @@ var each = exports.each = function(o, fn) {
         var hasOwn = Object.prototype.hasOwnProperty;
 
 		if ( o.constructor &&
-			!hasOwn.call(obj, "constructor") &&
-			!hasOwn.call(obj.constructor.prototype, "isPrototypeOf") ) {
+			!hasOwn.call(o, "constructor") &&
+			!hasOwn.call(o.constructor.prototype, "isPrototypeOf") ) {
 			return false;
 		}
 
@@ -23,19 +57,22 @@ var each = exports.each = function(o, fn) {
 		// if last one is own, then all properties are own.
 
 		var key;
-		for ( key in obj ) {}
+		for (key in o) {}
 
-		return key === undefined || hasOwn.call( obj, key );
+		return key === undefined || hasOwn.call( o, key );
     },
     extend = exports.extend = function() {
 
-
-
-        var options, name, src, copy, copyIsArray, clone,
-           target = arguments[0] || {},
-           i = 1,
-           length = arguments.length,
-           deep = false;
+        var options,
+            name,
+            src,
+            copy,
+            copyIsArray,
+            clone,
+            target = arguments[0] || {},
+            i = 1,
+            length = arguments.length,
+            deep = false;
 
         // Handle a deep copy situation
         if (typeof target === "boolean") {
@@ -48,12 +85,6 @@ var each = exports.each = function(o, fn) {
         // Handle case when target is a string or something (possible in deep copy)
         if (typeof target !== "object" && !isFunction(target)) {
             target = {};
-        }
-
-        // extend jQuery itself if only one argument is passed
-        if (length === i) {
-            target = this;
-            --i;
         }
 
         for (; i < length; i++) {

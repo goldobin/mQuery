@@ -21,10 +21,10 @@ var TYPES = [{
 
 (function() {
 
-var util = require("./util.js"),
+var $ = require("dsign.js"),
     url = require("url"),
     fs = require("fs"),
-    responders = require("./http-responders.js"),
+    responders = require("status.js"),
     defaults = {
         root: "html",
         types: TYPES,
@@ -35,7 +35,7 @@ var util = require("./util.js"),
 
 exports.createFileHandler = function(opts) {
 
-    var settings = util.extend({}, defaults, opts);
+    var settings = $.extend({}, defaults, opts);
 
     return function(req, res) {
 
